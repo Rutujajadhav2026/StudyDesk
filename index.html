@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyDesk – Student Productivity Dashboard</title>
+<meta name="description" content="Task planner, focus timer, SGPA calculator and notes in one page. Built with HTML, CSS and JavaScript.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef2f7; --grid:#dbe3ee; --surface:#ffffff; --ink:#14213d; --muted:#5b6b85;
+  --line:#d3dce9; --accent:#2f5bea; --accent-ink:#ffffff; --warm:#f2a516;
+  --ok:#1f9d6b; --bad:#d6403a; --radius:14px;
+  --head:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'Figtree','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1729; --grid:#17223a; --surface:#16213a; --ink:#e8eefb; --muted:#9aaac6;
+    --line:#2a3858; --accent:#6f95ff; --accent-ink:#0f1729; --warm:#f5b83d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1729; --grid:#17223a; --surface:#16213a; --ink:#e8eefb; --muted:#9aaac6;
+  --line:#2a3858; --accent:#6f95ff; --accent-ink:#0f1729; --warm:#f5b83d;
+}
+*{box-sizing:border-box;margin:0}
+body{
+  font-family:var(--body); color:var(--ink); background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px; min-height:100vh; line-height:1.5;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 20px 56px}
+
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+h1{font-family:var(--head);font-weight:800;font-size:clamp(1.9rem,4vw,2.8rem);letter-spacing:-.02em;line-height:1.05}
+.sub{color:var(--muted);margin-top:6px}
+.theme{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600}
+.theme:hover{border-color:var(--accent)}
+
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:20px}
+.stack{display:grid;gap:20px;align-content:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.card h2{font-family:var(--head);font-size:1.25rem;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card h2 small{font-family:var(--body);font-weight:500;font-size:.85rem;color:var(--muted)}
+
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+.field{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.field:focus{border-color:var(--accent)}
+
+/* tasks */
+.add{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;margin-bottom:14px}
+.bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .35s}
+.tabs{display:flex;gap:6px;margin:14px 0 8px}
+.tab{background:transparent;border:1px solid var(--line);border-radius:99px;padding:4px 14px;cursor:pointer;font-size:.9rem}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+ul{list-style:none;padding:0}
+.task{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.task input[type=checkbox]{width:20px;height:20px;accent-color:var(--ok);flex:none}
+.task .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.task.done .t{text-decoration:line-through;color:var(--muted)}
+.meta{font-size:.8rem;color:var(--muted)}
+.meta.late{color:var(--bad);font-weight:600}
+.pri{width:10px;height:10px;border-radius:50%;flex:none}
+.pri.High{background:var(--bad)} .pri.Medium{background:var(--warm)} .pri.Low{background:var(--ok)}
+.x{background:none;border:0;cursor:pointer;color:var(--muted);font-size:1.2rem;padding:2px 8px;border-radius:6px}
+.x:hover{color:var(--bad)}
+.empty{color:var(--muted);padding:16px 0 4px}
+
+/* timer */
+.dial{position:relative;width:220px;height:220px;margin:6px auto 14px}
+.dial svg{width:100%;height:100%;transform:rotate(-90deg)}
+.dial circle{fill:none;stroke-width:12}
+.dial .track{stroke:var(--bg)}
+.dial .prog{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .5s linear,stroke .3s}
+.dial.break .prog{stroke:var(--ok)}
+.time{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.time b{font-family:var(--head);font-size:3rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.time span{color:var(--muted);font-size:.9rem}
+.modes,.ctrl{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.modes .tab{font-size:.85rem}
+.center{text-align:center}
+
+/* gpa */
+.row{display:grid;grid-template-columns:1.4fr .7fr 1fr auto;gap:8px;margin-bottom:8px}
+.sgpa{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.sgpa b{font-family:var(--head);font-size:2.2rem;font-weight:800;color:var(--accent)}
+
+textarea.field{width:100%;min-height:130px;resize:vertical}
+.full{grid-column:1/-1}
+footer{margin-top:28px;color:var(--muted);font-size:.9rem;text-align:center}
+footer a{color:var(--accent)}
+
+@media (max-width:860px){.grid{grid-template-columns:1fr}.add{grid-template-columns:1fr 1fr}.add .field:first-child{grid-column:1/-1}.add .btn{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>StudyDesk</h1>
+      <p class="sub" id="greeting">Plan your tasks, focus, and track your grades.</p>
+    </div>
+    <button class="theme" id="themeBtn" aria-label="Toggle dark mode">Dark mode</button>
+  </header>
+
+  <main class="grid">
+    <!-- TASKS -->
+    <section class="card" aria-labelledby="tasksH">
+      <h2 id="tasksH">Tasks <small id="taskCount">0 of 0 done</small></h2>
+      <form class="add" id="taskForm">
+        <input class="field" id="taskText" placeholder="e.g. Submit DBMS assignment" aria-label="Task name" required maxlength="120">
+        <select class="field" id="taskPri" aria-label="Priority">
+          <option>High</option><option selected>Medium</option><option>Low</option>
+        </select>
+        <input class="field" type="date" id="taskDue" aria-label="Due date">
+        <button class="btn" type="submit">Add task</button>
+      </form>
+      <div class="bar" aria-hidden="true"><i id="taskBar"></i></div>
+      <div class="tabs" role="group" aria-label="Filter tasks">
+        <button class="tab" data-f="all" aria-pressed="true">All</button>
+        <button class="tab" data-f="active" aria-pressed="false">Pending</button>
+        <button class="tab" data-f="done" aria-pressed="false">Done</button>
+      </div>
+      <ul id="taskList"></ul>
+    </section>
+
+    <div class="stack">
+      <!-- TIMER -->
+      <section class="card" aria-labelledby="timerH">
+        <h2 id="timerH">Focus timer <small id="sessions">0 sessions today</small></h2>
+        <div class="modes" role="group" aria-label="Timer mode">
+          <button class="tab" data-m="25" aria-pressed="true">Focus 25</button>
+          <button class="tab" data-m="5" aria-pressed="false">Short break 5</button>
+          <button class="tab" data-m="15" aria-pressed="false">Long break 15</button>
+        </div>
+        <div class="dial" id="dial">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="track" cx="60" cy="60" r="52"/>
+            <circle class="prog" id="prog" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="time"><b id="clock" aria-live="off">25:00</b><span id="phase">Ready to focus</span></div>
+        </div>
+        <div class="ctrl">
+          <button class="btn" id="startBtn">Start</button>
+          <button class="btn ghost" id="resetBtn">Reset</button>
+        </div>
+      </section>
+
+      <!-- GPA -->
+      <section class="card" aria-labelledby="gpaH">
+        <h2 id="gpaH">SGPA calculator <small>10-point scale</small></h2>
+        <div id="gpaRows"></div>
+        <button class="btn ghost" id="addSub" type="button">Add subject</button>
+        <div class="sgpa"><span>Your SGPA <span class="meta" id="credTotal"></span></span><b id="sgpa">0.00</b></div>
+      </section>
+    </div>
+
+    <!-- NOTES -->
+    <section class="card full" aria-labelledby="notesH">
+      <h2 id="notesH">Quick notes <small id="saved">Saves automatically</small></h2>
+      <textarea class="field" id="notes" placeholder="Jot down formulas, viva questions, ideas..." aria-label="Notes"></textarea>
+    </section>
+  </main>
+
+  <footer>Built with HTML, CSS and JavaScript. Your data stays in your browser (localStorage).</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem('studydesk:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem('studydesk:'+k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  /* ---------- Greeting + theme ---------- */
+  const h = new Date().getHours();
+  const part = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  $('#greeting').textContent = part + '. ' + new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
+
+  const root = document.documentElement;
+  function setTheme(t){
+    if(t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+    const dark = root.getAttribute('data-theme') === 'dark' ||
+      (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    $('#themeBtn').textContent = dark ? 'Light mode' : 'Dark mode';
+  }
+  setTheme(store.get('theme', null));
+  $('#themeBtn').onclick = () => {
+    const dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const next = dark ? 'light' : 'dark';
+    store.set('theme', next); setTheme(next);
+  };
+
+  /* ---------- Tasks ---------- */
+  let tasks = store.get('tasks', []);
+  let filter = 'all';
+  const list = $('#taskList');
+
+  function saveTasks(){ store.set('tasks', tasks); renderTasks(); }
+
+  function renderTasks(){
+    list.innerHTML = '';
+    const shown = tasks.filter(t => filter==='all' || (filter==='done') === t.done);
+    if(!shown.length){
+      const li = document.createElement('li');
+      li.className = 'empty';
+      li.textContent = tasks.length ? 'Nothing here. Try another filter.' : 'No tasks yet. Add your first one above.';
+      list.appendChild(li);
+    }
+    const today = new Date().toISOString().slice(0,10);
+    shown.forEach(t => {
+      const li = document.createElement('li');
+      li.className = 'task' + (t.done ? ' done' : '');
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = t.done;
+      cb.setAttribute('aria-label','Mark "'+t.text+'" as done');
+      cb.onchange = () => { t.done = cb.checked; saveTasks(); };
+
+      const body = document.createElement('div'); body.className = 't';
+      const title = document.createElement('div'); title.textContent = t.text;
+      body.appendChild(title);
+      if(t.due){
+        const m = document.createElement('div');
+        const late = !t.done && t.due < today;
+        m.className = 'meta' + (late ? ' late' : '');
+        m.textContent = (late ? 'Overdue: ' : 'Due ') + new Date(t.due+'T00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'});
+        body.appendChild(m);
+      }
+
+      const dot = document.createElement('span');
+      dot.className = 'pri ' + t.pri; dot.title = t.pri + ' priority';
+
+      const del = document.createElement('button');
+      del.className = 'x'; del.textContent = '\u00d7';
+      del.setAttribute('aria-label','Delete task');
+      del.onclick = () => { tasks = tasks.filter(x => x.id !== t.id); saveTasks(); };
+
+      li.append(cb, body, dot, del);
+      list.appendChild(li);
+    });
+    const done = tasks.filter(t => t.done).length;
+    $('#taskCount').textContent = done + ' of ' + tasks.length + ' done';
+    $('#taskBar').style.width = (tasks.length ? done/tasks.length*100 : 0) + '%';
+  }
+
+  $('#taskForm').onsubmit = e => {
+    e.preventDefault();
+    const text = $('#taskText').value.trim();
+    if(!text) return;
+    tasks.unshift({id:Date.now(), text, pri:$('#taskPri').value, due:$('#taskDue').value, done:false});
+    $('#taskText').value = ''; $('#taskDue').value = '';
+    saveTasks();
+  };
+  document.querySelectorAll('.tab[data-f]').forEach(b => b.onclick = () => {
+    filter = b.dataset.f;
+    document.querySelectorAll('.tab[data-f]').forEach(x => x.setAttribute('aria-pressed', x===b));
+    renderTasks();
+  });
+
+  /* ---------- Focus timer ---------- */
+  const C = 2*Math.PI*52;
+  const prog = $('#prog'); prog.style.strokeDasharray = C;
+  let total = 25*60, left = total, timer = null, isBreak = false;
+  const todayKey = new Date().toISOString().slice(0,10);
+  let sess = store.get('sessions', {});
+  const fmt = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+
+  function drawTimer(){
+    $('#clock').textContent = fmt(left);
+    prog.style.strokeDashoffset = C * (1 - left/total);
+    $('#dial').classList.toggle('break', isBreak);
+    $('#sessions').textContent = (sess[todayKey]||0) + ' sessions today';
+    document.title = timer ? fmt(left) + ' – StudyDesk' : 'StudyDesk – Student Productivity Dashboard';
+  }
+  function beep(){
+    try{
+      const a = new (window.AudioContext||window.webkitAudioContext)();
+      [0,.25,.5].forEach(d => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(a.destination);
+        g.gain.setValueAtTime(.15, a.currentTime+d);
+        g.gain.exponentialRampToValueAtTime(.001, a.currentTime+d+.2);
+        o.start(a.currentTime+d); o.stop(a.currentTime+d+.2);
+      });
+    }catch(e){}
+  }
+  function stop(){ clearInterval(timer); timer = null; $('#startBtn').textContent = 'Start'; }
+  function tick(){
+    left--;
+    if(left <= 0){
+      left = 0; stop(); beep();
+      if(!isBreak){ sess[todayKey] = (sess[todayKey]||0)+1; store.set('sessions', sess); }
+      $('#phase').textContent = isBreak ? 'Break over' : 'Session complete. Take a break.';
+    }
+    drawTimer();
+  }
+  $('#startBtn').onclick = () => {
+    if(timer){ stop(); $('#phase').textContent = 'Paused'; }
+    else{
+      if(left === 0) left = total;
+      timer = setInterval(tick, 1000);
+      $('#startBtn').textContent = 'Pause';
+      $('#phase').textContent = isBreak ? 'Break time' : 'Stay focused';
+    }
+    drawTimer();
+  };
+  $('#resetBtn').onclick = () => { stop(); left = total; $('#phase').textContent = isBreak ? 'Break ready' : 'Ready to focus'; drawTimer(); };
+  document.querySelectorAll('.tab[data-m]').forEach(b => b.onclick = () => {
+    stop();
+    const m = +b.dataset.m; total = left = m*60; isBreak = m !== 25;
+    document.querySelectorAll('.tab[data-m]').forEach(x => x.setAttribute('aria-pressed', x===b));
+    $('#phase').textContent = isBreak ? 'Break ready' : 'Ready to focus';
+    drawTimer();
+  });
+
+  /* ---------- SGPA calculator ---------- */
+  const GRADES = {'O':10,'A+':9,'A':8,'B+':7,'B':6,'C':5,'P':4,'F':0};
+  let subs = store.get('subs', [
+    {name:'Mathematics', cr:4, g:'A'},
+    {name:'Programming', cr:3, g:'O'},
+    {name:'Physics', cr:3, g:'B+'}
+  ]);
+  const rows = $('#gpaRows');
+
+  function renderSubs(){
+    rows.innerHTML = '';
+    subs.forEach((s, i) => {
+      const r = document.createElement('div'); r.className = 'row';
+      const n = document.createElement('input');
+      n.className = 'field'; n.value = s.name; n.placeholder = 'Subject'; n.setAttribute('aria-label','Subject name');
+      n.oninput = () => { s.name = n.value; store.set('subs', subs); };
+      const c = document.createElement('input');
+      c.className = 'field'; c.type = 'number'; c.min = 0; c.max = 10; c.step = 0.5; c.value = s.cr;
+      c.setAttribute('aria-label','Credits');
+      c.oninput = () => { s.cr = parseFloat(c.value)||0; store.set('subs', subs); calcGpa(); };
+      const g = document.createElement('select'); g.className = 'field'; g.setAttribute('aria-label','Grade');
+      Object.keys(GRADES).forEach(k => { const o = document.createElement('option'); o.textContent = k; o.value = k; if(k===s.g) o.selected = true; g.appendChild(o); });
+      g.onchange = () => { s.g = g.value; store.set('subs', subs); calcGpa(); };
+      const d = document.createElement('button');
+      d.className = 'x'; d.textContent = '\u00d7'; d.setAttribute('aria-label','Remove subject');
+      d.onclick = () => { subs.splice(i,1); store.set('subs', subs); renderSubs(); };
+      r.append(n,c,g,d); rows.appendChild(r);
+    });
+    calcGpa();
+  }
+  function calcGpa(){
+    let pts = 0, cr = 0;
+    subs.forEach(s => { pts += (s.cr||0) * GRADES[s.g]; cr += (s.cr||0); });
+    $('#sgpa').textContent = cr ? (pts/cr).toFixed(2) : '0.00';
+    $('#credTotal').textContent = cr ? '(' + cr + ' credits)' : '';
+  }
+  $('#addSub').onclick = () => { subs.push({name:'', cr:3, g:'A'}); store.set('subs', subs); renderSubs(); };
+
+  /* ---------- Notes ---------- */
+  const notes = $('#notes'); let nt;
+  notes.value = store.get('notes', '');
+  notes.oninput = () => {
+    clearTimeout(nt);
+    $('#saved').textContent = 'Saving...';
+    nt = setTimeout(() => { store.set('notes', notes.value); $('#saved').textContent = 'Saved'; }, 400);
+  };
+
+  renderTasks(); renderSubs(); drawTimer();
+})();
+</script>
+</body>
+</html>
